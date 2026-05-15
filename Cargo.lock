@@ -1993,8 +1993,6 @@ dependencies = [
 name = "bun_sigstore"
 version = "0.0.0"
 dependencies = [
- "bstr",
- "bun_alloc",
  "bun_base64",
  "bun_core",
  "bun_http",
@@ -2005,7 +2003,6 @@ dependencies = [
  "rand_core",
  "serde",
  "serde_json",
- "strum",
  "thiserror",
 ]
 
