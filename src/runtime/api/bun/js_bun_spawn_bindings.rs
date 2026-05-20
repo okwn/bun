@@ -404,6 +404,7 @@ pub fn spawn_maybe_sync<const IS_SYNC: bool>(
     let mut ipc_channel: i32 = -1;
     let mut timeout: Option<i32> = None;
     let mut kill_signal: SignalCode = SignalCode::DEFAULT;
+    let mut death_signal: Option<SignalCode> = None;
     let mut max_buffer: Option<i64> = None;
 
     let mut windows_hide: bool = false;
@@ -725,6 +726,12 @@ pub fn spawn_maybe_sync<const IS_SYNC: bool>(
 
             if let Some(val) = args.get(global_this, "killSignal")? {
                 kill_signal = signal_code_from_js(val, global_this)?;
+            }
+
+            if let Some(val) = args.get(global_this, "deathSignal")? {
+                if !val.is_empty_or_undefined_or_null() {
+                    death_signal = Some(signal_code_from_js(val, global_this)?);
+                }
             }
 
             if let Some(val) = args.get(global_this, "maxBuffer")? {
@@ -1077,6 +1084,7 @@ pub fn spawn_maybe_sync<const IS_SYNC: bool>(
     let mut spawn_options = SpawnOptions {
         cwd: cwd.to_vec().into_boxed_slice(),
         detached,
+        linux_pdeathsig: death_signal.map(|s| s.0),
         stdin: match stdio[0].as_spawn_option(0) {
             stdio::ResultT::Result(opt) => opt,
             stdio::ResultT::Err(e) => return Err(e.throw_js(global_this)),
