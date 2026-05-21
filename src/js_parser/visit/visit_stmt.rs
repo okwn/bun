@@ -829,11 +829,11 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                         // Inject the default name into the class when a downstream
                         // lowering will actually dereference `class.class_name`:
                         //   - when it has decorators (existing behavior), or
-                        //   - when it has a static `accessor` field (whose synthesized
-                        //     getter dereferences through the class binding under the
-                        //     standard-decorator lowering that `lower_class` will route
-                        //     auto-accessor classes through; without a name, the statement
-                        //     path panics at `class_name.unwrap().ref_.unwrap()`).
+                        //   - when it has any `accessor` field (instance or static).
+                        //     Auto-accessor classes are routed through standard-decorator
+                        //     lowering, whose statement path unconditionally unwraps
+                        //     `class_name.unwrap().ref_.unwrap()` — without a name, an
+                        //     anonymous `export default class { accessor x = 1 }` panics.
                         let mut needs_default_name = class.class.has_decorators;
                         if !needs_default_name {
                             for prop in class.class.properties.iter() {
