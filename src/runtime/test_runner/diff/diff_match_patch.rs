@@ -1602,7 +1602,6 @@ mod tests {
             diffs
         );
     }
-
 }
 
 // ported from: src/test_runner/diff/diff_match_patch.zig

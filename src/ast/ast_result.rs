@@ -178,7 +178,6 @@ impl<'a> Ast<'a> {
         // responsibility when constructing the `JsonWriter` impl.
         stream.write(self.parts.as_slice())
     }
-
 }
 
 pub use crate::g::Class;

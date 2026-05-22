@@ -28,11 +28,10 @@ pub mod socket;
 #[path = "webcore.rs"]
 pub mod webcore;
 
-pub mod bake;
-pub mod cli;
-pub mod shell;
 #[path = "api.rs"]
 pub mod api;
+pub mod bake;
+pub mod cli;
 pub mod dispatch;
 pub mod hw_exports;
 pub mod ipc_host;
@@ -40,6 +39,7 @@ pub mod jsc_hooks;
 pub mod napi;
 #[path = "../bun.js.rs"]
 pub mod run_main;
+pub mod shell;
 pub mod timer;
 // `generated_classes_list.zig` lives under `src/jsc/` but every type it
 // aliases is defined in this crate (api/webcore/test_runner/bake) or a

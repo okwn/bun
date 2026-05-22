@@ -229,7 +229,6 @@ impl Stats {
             Stats::Small(v) => v.to_js(global),
         }
     }
-
 }
 
 // ported from: src/runtime/node/Stat.zig

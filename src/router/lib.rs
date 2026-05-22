@@ -309,7 +309,6 @@ impl<'a> Router<'a> {
                         let _ = watcher.start();
                     }
                 }
-
             }
         }
 

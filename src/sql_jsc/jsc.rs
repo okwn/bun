@@ -128,7 +128,6 @@ pub trait JSGlobalObjectSqlExt {
     /// only need shared access.
     fn sql_vm(&self) -> &VirtualMachine;
     fn sql_vm_ptr(&self) -> *mut VirtualMachine;
-
 }
 
 impl JSGlobalObjectSqlExt for JSGlobalObject {

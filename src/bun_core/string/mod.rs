@@ -1034,7 +1034,6 @@ impl String {
             Tag::WTFStringImpl => self.as_wtf().byte_length(),
         }
     }
-
 }
 // `bun.String.init(anytype)` dispatch table (string.zig:331) — Rust side is
 // expressed as `From` impls feeding `String::init<T: Into<Self>>`. The

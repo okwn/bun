@@ -14,8 +14,8 @@ pub fn url_from_js(
     js_value: JSValue,
     global: &JSGlobalObject,
 ) -> Result<OwnedURL, bun_core::Error> {
-    let href: BunString = bun_jsc::URL::href_from_js(js_value, global)
-        .map_err(|_| bun_core::err!(JSError))?;
+    let href: BunString =
+        bun_jsc::URL::href_from_js(js_value, global).map_err(|_| bun_core::err!(JSError))?;
     if href.tag() == Tag::Dead {
         return Err(bun_core::err!(InvalidURL));
     }

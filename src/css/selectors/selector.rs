@@ -788,7 +788,6 @@ pub mod serialize {
             } else {
                 combinators_exhausted = true;
             }
-
         }
         Ok(())
     }
@@ -1396,7 +1395,6 @@ pub mod tocss_servo {
             } else {
                 combinators_exhausted = true;
             }
-
         }
         Ok(())
     }

@@ -1,6 +1,5 @@
 #![feature(allocator_api)]
 #![feature(thread_local)]
-
 #![warn(unreachable_pub)]
 use core::fmt;
 use std::borrow::Cow;

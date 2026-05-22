@@ -2435,7 +2435,6 @@ impl ThreadSafeFunction {
                 // state was bumped to Pending by enqueue()/release(); re-dispatch.
             }
         }
-
     }
 
     pub fn is_closing(&self) -> bool {

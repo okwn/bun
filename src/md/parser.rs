@@ -244,7 +244,6 @@ impl<'a> Parser<'a> {
             self.mark_char_map.set(b'\r' as usize);
         }
     }
-
 }
 
 // Silence unused-import warnings for the sibling modules referenced only in

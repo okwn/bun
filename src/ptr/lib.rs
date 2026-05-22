@@ -10,7 +10,6 @@
 // dependency cycle.
 #![allow(clippy::disallowed_types)]
 #![warn(unused_must_use)]
-
 // Cow/CowSlice → std (PORTING.md says these ARE std::borrow::Cow)
 #![warn(unreachable_pub)]
 pub use std::borrow::Cow;

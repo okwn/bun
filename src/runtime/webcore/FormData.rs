@@ -276,9 +276,7 @@ pub fn to_js_from_multipart_data(
                 // this branch, so call explicitly at scope end.
                 blob.detach();
             } else {
-                let value = ZigString::init_utf8(
-                    strings::without_utf8_bom(value_str),
-                );
+                let value = ZigString::init_utf8(strings::without_utf8_bom(value_str));
                 wrap.form.append(&key, &value);
             }
         }
