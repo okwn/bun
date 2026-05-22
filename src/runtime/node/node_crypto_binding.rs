@@ -50,11 +50,6 @@ impl JSValueCryptoExt for JSValue {
     }
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// ExternCryptoJob — Zig `fn ExternCryptoJob(comptime name: []const u8) type`.
-// This does token-pasting to form C symbol names (`Bun__<name>Ctx__runTask`
-// etc.), so a `macro_rules!` is the correct port shape per PORTING.md.
-// ───────────────────────────────────────────────────────────────────────────
 macro_rules! extern_crypto_job {
     ($Name:ident, $name_str:literal) => {
         pub mod $Name {
@@ -63,10 +58,6 @@ macro_rules! extern_crypto_job {
             // `Ctx` is `opaque {}` — Nomicon FFI opaque-handle pattern.
             bun_opaque::opaque_ffi! { pub struct Ctx; }
 
-            // `Ctx` is an `opaque_ffi!` ZST handle, so `&Ctx` is ABI-identical
-            // to a non-null pointer and discharges the validity proof at the
-            // type level. `global` in `runTask` is forwarded raw (the trait
-            // hands us `*mut`; C++ never reads through it off-thread).
             unsafe extern "C" {
                 #[link_name = concat!("Bun__", $name_str, "Ctx__runTask")]
                 safe fn ctx_run_task(ctx: &Ctx, global: *mut JSGlobalObject);
@@ -244,12 +235,6 @@ pub mod random {
         pub bytes: *mut u8,
         pub offset: u32,
         pub length: usize,
-        // Worker-owned destination for user-supplied buffers (`randomFill`).
-        // The user can detach (`transfer()`) or shrink (`resize()`) the backing
-        // store between scheduling and the WorkPool write, so the worker fills
-        // this scratch and `run_from_js` re-validates + copies on the JS thread.
-        // `randomBytes` allocates its own buffer (unreachable from JS until the
-        // callback fires) and leaves this `None`.
         pub scratch: Option<Vec<u8>>,
         pub result: (), // void
     }
@@ -286,10 +271,6 @@ pub mod random {
 
         fn run_from_js(&mut self, global: &JSGlobalObject, callback: JSValue) {
             if let Some(scratch) = self.scratch.take() {
-                // Re-fetch the buffer on the JS thread and re-validate bounds:
-                // the user may have detached or resized it while the WorkPool
-                // task ran. On mismatch, drop the random bytes rather than
-                // write through a stale pointer.
                 if let Some(mut buf) = self.value.as_array_buffer(global) {
                     let off = self.offset as usize;
                     let dst = buf.slice_mut();
@@ -598,10 +579,6 @@ pub mod random {
                 buf.byte_len,
             )?;
 
-            // Zig keeps `size: usize` here (`buf.byte_len - offset`, both usize). The
-            // `assert_size` branch is bounded by `MAX_POSSIBLE_LENGTH` (≤ i32::MAX) so widening
-            // its `u32` result is lossless; the default branch must NOT truncate to `u32` —
-            // a >4 GiB ArrayBuffer remainder would silently fill only `(n % 2^32)` bytes.
             let size: usize = if size_value.is_undefined() {
                 buf.byte_len - offset as usize
             } else {
@@ -650,10 +627,6 @@ pub mod random {
                 offset = assert_offset(global, offset_value, element_size, buf.byte_len)?;
             }
 
-            // Zig keeps `size: usize` here (`buf.byte_len - offset`, both usize). The
-            // `assert_size` branch is bounded by `MAX_POSSIBLE_LENGTH` (≤ i32::MAX) so widening
-            // its `u32` result is lossless; the default branch must NOT truncate to `u32` —
-            // a >4 GiB ArrayBuffer remainder would silently fill only `(n % 2^32)` bytes.
             let size: usize = if size_value.is_undefined() {
                 buf.byte_len - offset as usize
             } else {
@@ -665,10 +638,6 @@ pub mod random {
                 return Ok(JSValue::UNDEFINED);
             }
 
-            // `vec![0u8; size]` aborts the process on OOM. The 3-arg overload
-            // `randomFill(buf, offset, cb)` defaults `size` to the full
-            // remaining buffer length, which can exceed allocator limits for a
-            // multi-GiB ArrayBuffer — surface that as a JS error instead.
             let mut scratch = Vec::new();
             if scratch.try_reserve_exact(size).is_err() {
                 return Err(global.throw_out_of_memory());
@@ -696,13 +665,6 @@ pub mod random {
 // Scrypt
 // ───────────────────────────────────────────────────────────────────────────
 pub struct Scrypt {
-    // Plain `StringOrBuffer` — NOT `ThreadSafe<_>`. The struct serves both
-    // `scryptSync` (no protect taken) and async `scrypt` (protect taken in
-    // `from_js_maybe_async(.., true)`); wrapping in `ThreadSafe` here would make
-    // the sync path's drop call `JSValue::unprotect()` on a buffer it never
-    // protected, stealing a refcount from any independent protector. The async
-    // path releases its protect via `Unprotect for Scrypt` in
-    // `CryptoJobCtx::deinit` instead (Zig: `deinit` vs `deinitSync`).
     password: StringOrBuffer,
     salt: StringOrBuffer,
     n: u32,
@@ -731,10 +693,6 @@ mod _impl {
     use crate::crypto::pbkdf2::{self, PBKDF2};
 
     impl Scrypt {
-        /// Zig: `fromJS(..., comptime is_async: bool) JSError!if (is_async) struct{@This(),JSValue} else @This()`.
-        /// Rust cannot vary the return type on a const-generic bool, so this always returns
-        /// `(Self, JSValue)`; the sync caller ignores the second element.
-        // PORT NOTE: reshaped — return type unified across IS_ASYNC.
         pub fn from_js<const IS_ASYNC: bool>(
             global: &JSGlobalObject,
             call_frame: &CallFrame,
@@ -766,10 +724,6 @@ mod _impl {
                 ));
             };
 
-            // Zig: `errdefer if (is_async) password.deinitAndUnprotect() else password.deinit()`.
-            // The `deinit()` half is `Drop for StringOrBuffer`; only the async branch took a
-            // `protect()` (inside `from_js_maybe_async`), so only that branch may unprotect —
-            // an unconditional unprotect would steal a refcount on the sync path.
             let password = scopeguard::guard(password, |mut p| {
                 if IS_ASYNC {
                     bun_jsc::Unprotect::unprotect(&mut p);
@@ -807,10 +761,6 @@ mod _impl {
 
             if let Some(options_value) = maybe_options_value {
                 if let Some(options) = options_value.get_object() {
-                    // `get_object` returned non-null; the JSObject is rooted by
-                    // `options_value` (kept alive on the stack for this scope).
-                    // `JSObject` is an `opaque_ffi!` ZST handle; `opaque_ref` is the
-                    // centralised non-null-ZST deref proof.
                     let options = bun_jsc::JSObject::opaque_ref(options);
                     if let Some(n_value) = options.get(global, "N")? {
                         n = Some(validators::validate_uint32(
@@ -1110,10 +1060,6 @@ mod _impl {
         // the OOM branch (double-deinit). `PBKDF2`'s `StringOrBuffer` fields release
         // on `Drop`, so the local just goes out of scope; the redundant call is gone.
         let mut data = data;
-        // Zig: `JSValue.createBufferFromLength` → `JSBuffer__bufferFromLength`, which constructs
-        // with `JSBufferSubclassStructure` (a Node.js `Buffer`, not a plain Uint8Array/ArrayBuffer).
-        // `pbkdf2Sync()` MUST return a Buffer — `Buffer.isBuffer(result)` and Buffer-only methods
-        // (`.toString('hex')`, `.readUInt32BE`, …) depend on it.
         let out_arraybuffer =
             JSValue::create_buffer_from_length(global_this, data.length as usize)?;
         let Some(mut output) = out_arraybuffer.as_array_buffer(global_this) else {

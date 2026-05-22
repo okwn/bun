@@ -36,10 +36,6 @@ pub union union_EncodedJSValue {
 pub type EncodedJSValue = union_EncodedJSValue;
 
 impl union_EncodedJSValue {
-    /// Raw 64-bit encoding. Safe: every union arm is an 8-byte POD scalar with
-    /// no invalid bit patterns, so the `i64` view is always initialized
-    /// regardless of which arm wrote it (same-size bit-reinterpret into a
-    /// fully-inhabited type — the canonical `bytemuck::cast` precondition).
     #[inline]
     pub const fn bits(self) -> i64 {
         // SAFETY: `#[repr(C)]` union of 8-byte POD scalars (i64 / f64 / ptr /
@@ -49,11 +45,6 @@ impl union_EncodedJSValue {
     }
 }
 
-// PORTING.md §Global mutable state: never mutated → would be `const`, but kept
-// as `#[no_mangle] static` to preserve the exported symbol for TinyCC-compiled
-// FFI stubs. `RacyCell` is `repr(transparent)` so the symbol's bytes are
-// identical to a bare `EncodedJSValue`; the wrapper only satisfies `Sync`
-// (the union contains `*mut c_void`).
 #[unsafe(no_mangle)]
 pub static ValueUndefined: bun_core::RacyCell<EncodedJSValue> =
     bun_core::RacyCell::new(EncodedJSValue {
@@ -215,11 +206,6 @@ pub fn jsvalue_to_bool(val: EncodedJSValue) -> bool {
 unsafe extern "C" {
     pub fn JSFunctionCall(globalObject: *mut c_void, callFrame: *mut c_void) -> *mut c_void;
 }
-
-// PORT NOTE: ~390 lines of translate-c compiler-builtin macro definitions
-// (`__block`, `__INTMAX_C_SUFFIX__`, `__clang_major__`, `__SIZEOF_*`,
-// `__ARM_FEATURE_*`, `__APPLE__`, …) from FFI.zig:121-509 intentionally
-// dropped — they are clang predefined-macro spew with no callers.
 
 pub const IS_BIG_ENDIAN: c_int = 0;
 pub const USE_JSVALUE64: c_int = 1;

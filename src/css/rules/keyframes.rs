@@ -12,11 +12,6 @@ use super::ArrayList;
 // KeyframesName
 // ──────────────────────────────────────────────────────────────────────────
 
-/// `<keyframes-name> = <custom-ident> | <string>`
-// PORT NOTE: Zig threaded the parser-input lifetime; this stores
-// `&'static [u8]` per PORTING.md §AST crates and the rules/mod.rs
-// `CssRule<R>` lifetime-erasure note.
-// TODO(refactor): re-thread `'bump` here.
 pub enum KeyframesName {
     /// `<custom-ident>` of a `@keyframes` name.
     Ident(CustomIdent),
@@ -181,10 +176,6 @@ impl KeyframeSelector {
 // blocked_on: css::derive_parse (DeriveParse comptime macro replacement).
 
 impl KeyframeSelector {
-    // Zig: `pub const parse = css.DeriveParse(@This()).parse;`
-    // PORT NOTE: `DeriveParse` is a comptime type-generator producing `parse` from
-    // variant introspection. Expanded by hand here: try the tuple variant
-    // (`Percentage`) first, then fall back to keyword idents (`from`/`to`).
     pub fn parse(input: &mut css::Parser) -> css::Result<KeyframeSelector> {
         if let Ok(p) = input.try_parse(Percentage::parse) {
             return Ok(KeyframeSelector::Percentage(p));
@@ -314,17 +305,6 @@ impl KeyframesRule {
         &mut self,
         _targets: &css::targets::Targets,
     ) -> &[css::css_rules::CssRule<T>] {
-        // PORT NOTE: Zig spec body is `@compileError(css.todo_stuff.depth)` — the fn is
-        // declared but never instantiated; its sole call site in `rules.zig`
-        // (`CssRuleList.minify` → `.keyframes` arm) is commented out and replaced with
-        // `debug("TODO: KeyframesRule", ...)`. lightningcss upstream computes per-keyframe
-        // *declaration* fallbacks inline in the minify loop rather than emitting whole
-        // `CssRule` fallbacks here, so there is no rule-level fallback list to return.
-        // The faithful port of "compile-time-dead, returns []CssRule(T)" is the empty
-        // slice — matches the Zig program's observable behavior (no fallbacks appended)
-        // without a runtime trap.
-        // TODO(refactor): wire the declaration-level path in `CssRuleList::minify`
-        // directly, then delete this stub.
         let _ = self;
         &[]
     }
@@ -346,15 +326,6 @@ impl KeyframesRule {
 // ──────────────────────────────────────────────────────────────────────────
 
 pub struct KeyframesListParser;
-
-// PORT NOTE: in Zig these are nested `pub const DeclarationParser = struct { ... }`
-// namespaces that the css parser duck-types via `@hasDecl`. In Rust they become
-// trait impls on `KeyframesListParser`.
-//
-// blocked_on: css::{DeclarationParser, AtRuleParser, QualifiedRuleParser,
-// RuleBodyItemParser} trait signatures (css_parser.rs round-5 surface),
-// Parser::parse_comma_separated, DeclarationBlock::parse, ParserOptions::default
-// arena threading.
 
 const _: () = {
     use css::css_parser::{

@@ -91,13 +91,6 @@ impl Request {
         // SAFETY: uws returns a pointer+len pair valid for the lifetime of the request
         unsafe { bun_core::ffi::slice(p, n) }
     }
-    /// Iterate all request headers.
-    ///
-    /// Zig takes `comptime cb` and bakes it into the trampoline at
-    /// monomorphization time. Rust models this by requiring `H` to be a
-    /// zero-sized type (function item or capture-less closure): the trampoline
-    /// is monomorphized over `H` and conjures the ZST inside, so the user
-    /// handler is baked in with no runtime storage.
     pub fn for_each_header<Ctx, H>(&mut self, _cb: H, ctx: *mut Ctx)
     where
         H: Fn(&mut Ctx, &[u8], &[u8]) + Copy + 'static,
@@ -401,10 +394,6 @@ pub enum AddServerNameError {
 }
 bun_core::impl_tag_error!(AddServerNameError);
 
-/// Stamps one `pub fn $name<UD, H>(&mut self, p, ud, h)` per HTTP verb,
-/// each forwarding to [`App::route`] with the matching [`RouteKind`].
-/// `connect`/`trace` are intentionally omitted — h3 exposes those only via
-/// [`App::method`], matching h3.zig.
 macro_rules! h3_route_methods {
     ($($name:ident => $kind:ident),* $(,)?) => {$(
         pub fn $name<UD, H>(&mut self, p: &[u8], ud: *mut UD, h: H)
@@ -586,10 +575,6 @@ mod c {
     pub type ListenHandler = Option<unsafe extern "C" fn(*mut ListenSocket, *mut c_void)>;
     pub type HeaderCb = unsafe extern "C" fn(*const u8, usize, *const u8, usize, *mut c_void);
 
-    // Opaque handles in this module are `#[repr(C)]` with `UnsafeCell<[u8; 0]>`,
-    // so `&T`/`&mut T` are ABI-identical to a non-null pointer. Shims whose
-    // only pointer arg is the opaque handle (plus value types) are `safe fn`.
-    // Shims with (ptr,len), nullable raw, *mut c_void ctx stay unsafe.
     unsafe extern "C" {
         pub fn uws_h3_create_app(opts: BunSocketContextOptions, idle_timeout_s: u32) -> *mut App;
         pub fn uws_h3_app_destroy(app: *mut App);

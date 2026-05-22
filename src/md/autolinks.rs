@@ -342,11 +342,6 @@ pub fn find_permissive_autolink(content: &[u8], pos: usize, allow_emph: bool) ->
 fn post_process_autolink_end(content: &[u8], beg: usize, end_in: usize) -> usize {
     let mut end = end_in;
 
-    // Trim trailing entity-like suffixes.
-    // GFM spec: "If an autolink ends in a semicolon (;), we check to see if it
-    // appears to resemble an entity reference; if the preceding text is &
-    // followed by one or more alphanumeric characters."
-    // Case 1: URL itself ends with `;` (e.g., `&hl;` was fully scanned)
     if end > beg && content[end - 1] == b';' {
         let mut j = end - 2;
         while j > beg && helpers::is_alpha_num(content[j]) {

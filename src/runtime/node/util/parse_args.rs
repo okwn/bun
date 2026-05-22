@@ -340,12 +340,6 @@ fn check_option_usage(
     Ok(())
 }
 
-/// Store the option value in `values`.
-/// Parameters:
-/// - `option_name`: long option name e.g. "foo"
-/// - `option_value`: value from user args
-/// - `options`: option configs, from `parseArgs({ options })`
-/// - `values`: option values returned in `values` by parseArgs
 fn store_option(
     global: &JSGlobalObject,
     option_name: ValueRef,
@@ -372,10 +366,6 @@ fn store_option(
 
     let is_multiple = option_idx.is_some_and(|idx| options[idx].multiple);
     if is_multiple {
-        // Always store value in array, including for boolean.
-        // values[long_option] starts out not present,
-        // first value is added as new array [new_value],
-        // subsequent values are pushed to existing array.
         if let Some(value_list) = values.get_own(global, &key)? {
             value_list.push(global, new_value)?;
         } else {
@@ -519,10 +509,6 @@ fn parse_option_definitions(
     Ok(())
 }
 
-/// Process the args string-array and build an array identified tokens:
-/// - option (along with value, if any)
-/// - positional
-/// - option-terminator
 fn tokenize_args(
     ctx: &mut ParseArgsState,
     global: &JSGlobalObject,
@@ -986,11 +972,6 @@ pub fn parse_args(global: &JSGlobalObject, callframe: &CallFrame) -> JsResult<JS
         parse_option_definitions(global, config_options, &mut option_defs)?;
     }
 
-    //
-    // Phase 1: tokenize the args string-array
-    //  +
-    // Phase 2: process tokens into parsed option values and positionals
-    //
     bun_output::scoped_log!(
         parseArgs,
         "Phase 1+2: tokenize args (args.len={})",

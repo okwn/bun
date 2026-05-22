@@ -133,21 +133,6 @@ pub fn is_zero_width_codepoint_type<T: Copy + Into<u32>>(cp: T) -> bool {
     false
 }
 
-/// Official unicode reference: https://www.unicode.org/Public/UCD/latest/ucd/EastAsianWidth.txt
-/// Tag legend:
-///  - `W` (wide) -> true
-///  - `F` (full-width) -> true
-///  - `H` (half-width) -> false
-///  - `N` (neutral) -> false
-///  - `Na` (narrow) -> false
-///  - `A` (ambiguous) -> false?
-///
-/// To regenerate the switch body list, run:
-/// ```js
-///    [...(await (await fetch("https://www.unicode.org/Public/UCD/latest/ucd/EastAsianWidth.txt")).text()).matchAll(/^([\dA-F]{4,})(?:\.\.([\dA-F]{4,}))?\s+;\s+(\w+)\s+#\s+(.*?)\s*$/gm)].flatMap(([,start, end, type, comment]) => (
-///        (['W', 'F'].includes(type)) ? [`        ${(end ? `0x${start}...0x${end}` : `0x${start}`)}, // ${''.padStart(17 - start.length - (end ? end.length + 5 : 0))}[${type}] ${comment}`] : []
-///    )).join('\n')
-/// ```
 pub fn is_full_width_codepoint_type<T: Copy + Into<u32>>(cp: T) -> bool {
     let cp: u32 = cp.into();
     if !(cp >= 0x1100) {
@@ -724,10 +709,6 @@ pub mod visible {
         let mut i: usize = 0;
         let end = input_.len();
 
-        // 4x prologue: process 64 bytes per iteration. Each per-chunk popcount
-        // is independent and pipelines, only summing into the scalar accumulator
-        // every 64 bytes — amortizes the addv→fmov hazard that caps throughput
-        // on the no-control-char fast path.
         while end - i >= 64 {
             let c0 = u8x16::from_slice(&input_[i..i + 16]);
             let c1 = u8x16::from_slice(&input_[i + 16..i + 32]);
@@ -765,14 +746,6 @@ pub mod visible {
         }
     }
 
-    // Scan for the first element in the inclusive range [lo, hi]. Returns
-    // None if not found. Used to find the CSI final byte (0x40-0x7E).
-    //
-    // PORT NOTE: was a SIMD lane-scan via `core::simd::Simd<T, STRIDE>`
-    // (nightly-only). Demoted to a scalar loop — `STRIDE` is kept as a
-    // dead const-generic so call sites (`scan_lane_in_range::<u8, 16>(...)`)
-    // diff cleanly against the Zig.
-    // PERF(port): re-SIMD via bun_highway.
     pub(super) fn scan_lane_in_range<T, const STRIDE: usize>(
         lo: T,
         hi: T,
@@ -790,12 +763,6 @@ pub mod visible {
         None
     }
 
-    // Scan for the first element equal to any of `targets`. Returns None if
-    // not found. Used to find OSC terminators (BEL/ESC and the C1 ST 0x9C).
-    //
-    // PORT NOTE: was a SIMD lane-scan via `core::simd`. Demoted to scalar;
-    // `STRIDE` is kept for call-site diff parity.
-    // PERF(port): re-SIMD via bun_highway.
     pub(super) fn scan_lane_any_of<T, const STRIDE: usize>(
         targets: &[T],
         slice: &[T],
@@ -830,10 +797,6 @@ pub mod visible {
             }
 
             if input[1] == b'[' {
-                // CSI sequence: ESC [ <params> <final byte>
-                // Final byte is in range 0x40-0x7E (@ through ~). SIMD-scan
-                // for it instead of stepping byte-by-byte; CSI parameters can
-                // be 1-15+ bytes (e.g. ESC [ 1;31;48;2;255;0;0 m).
                 if input.len() < 3 {
                     return length;
                 }
@@ -844,10 +807,6 @@ pub mod visible {
                     return length;
                 }
             } else if input[1] == b']' {
-                // OSC sequence: ESC ] ... (BEL or ST). The payload is opaque
-                // (titles, hyperlinks, filenames) — SIMD-scan for the
-                // terminators instead of byte-by-byte. Terminators per ECMA-48
-                // and xterm: BEL (0x07), C1 ST (0x9C), or 7-bit ST (ESC \).
                 input = &input[2..];
                 // PORT NOTE: Zig `while ... else` reshaped — else arm runs only
                 // when scan returns None (no break taken).
@@ -913,12 +872,6 @@ pub mod visible {
         len
     }
 
-    /// Packed state for grapheme tracking - all small fields in one u32
-    // PERF(port): was `packed struct(u32)` (u10/u2/u8 + 7 bools). Ported as a
-    // plain Copy struct; if the single-register copy in `width()` matters,
-    // re-pack as #[repr(transparent)] u32 with shift accessors.
-    // NOTE: `non_emoji_width` widened u10→u16 but `add()` clamps to 1023 to
-    // preserve the Zig `+|=` saturation point.
     #[derive(Copy, Clone, Default)]
     struct PackedState {
         non_emoji_width: u16, // Accumulated width (saturates at 1023) — was u10
@@ -1133,13 +1086,6 @@ pub mod visible {
     ) -> usize {
         let mut input = input_;
         let mut len: usize = 0;
-        // `prev` tracks the literal previous codepoint (including ANSI bytes) —
-        // needed for the OSC ST terminator check (ESC \ = prev==0x1b, cp=='\\').
-        // `prev_visible` tracks the last VISIBLE codepoint — used by graphemeBreak.
-        // Using `prev` for graphemeBreak was a bug: CSI bytes like 'm' would
-        // wrongly join to a following combining mark (e.g. "\x1b[1m️?" →
-        // graphemeBreak('m', FE0F) = false → add() on uninitialized state →
-        // width 2 instead of 1).
         let mut prev: Option<u32> = None;
         let mut prev_visible: Option<u32> = None;
         let mut break_state: grapheme::BreakState = grapheme::BreakState::Default;
@@ -1201,11 +1147,6 @@ pub mod visible {
 
                 let mut j: usize = 0;
                 'inner: while j < idx {
-                    // Bulk SIMD scans inside escape states — replace the byte-by-byte
-                    // walk for long CSI parameter strings and OSC payloads (URLs,
-                    // titles, hyperlinks). The grapheme/width tracking lives below
-                    // and only fires on visible codepoints, so the escape body bytes
-                    // don't need per-byte processing here.
                     if saw_csi {
                         // CSI final byte is in [0x40, 0x7E].
                         let sub = &input[j..idx];
@@ -1404,10 +1345,6 @@ pub mod visible {
                 super::super::visible_utf16_width_fn(input, true, ambiguous_as_wide)
             }
 
-            /// Byte index of the longest prefix of `input` whose visible
-            /// width is <= `max_width`. ANSI escapes count as zero-width
-            /// and are always included in the prefix. Never splits a
-            /// multi-byte UTF-8 codepoint.
             pub fn utf8_index_at_width(input: &[u8], max_width: usize) -> usize {
                 super::super::utf8_index_at_width_exclude_ansi(input, max_width)
             }
@@ -1468,10 +1405,6 @@ pub mod visible {
         input_.len()
     }
 
-    /// Walk `len` bytes of `input` starting at absolute offset `start`,
-    /// accumulating visible width. Returns the absolute byte index at
-    /// which adding the next codepoint would exceed `max_width`, or None
-    /// if the whole run fits. Mirrors visible_utf8_width_fn's decode loop.
     fn utf8_walk_run(
         input: &[u8],
         start: usize,

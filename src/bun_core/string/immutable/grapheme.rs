@@ -24,10 +24,6 @@ pub enum GraphemeBreakNoControl {
     ExtendedPictographic,
     EmojiModifierBase,
     EmojiModifier,
-    // extend ==
-    //   zwnj +
-    //   indic_conjunct_break_extend +
-    //   indic_conjunct_break_linker
     IndicConjunctBreakExtend,
     IndicConjunctBreakLinker,
     IndicConjunctBreakConsonant,
@@ -83,10 +79,6 @@ impl BreakState {
     }
 }
 
-/// 3-level lookup table for codepoint → element mapping.
-/// stage1 maps high byte → stage2 offset (u16)
-/// stage2 maps to stage3 index (u8, max 255 unique values)
-/// stage3 stores the actual element values
 pub struct Tables<Elem: 'static> {
     pub stage1: &'static [u16],
     pub stage2: &'static [u8],
@@ -106,11 +98,6 @@ impl<Elem: Copy + 'static> Tables<Elem> {
 // TODO(port): grapheme_tables is generated — re-run generator with .rs output.
 pub use grapheme_tables::TABLE;
 
-/// Determines if there is a grapheme break between two codepoints.
-/// Must be called sequentially maintaining the state between calls.
-///
-/// This function does NOT handle control characters, line feeds, or
-/// carriage returns. Those must be filtered out before calling.
 pub fn grapheme_break(cp1: u32, cp2: u32, state: &mut BreakState) -> bool {
     let value = precompute::DATA[precompute::Key::new(
         grapheme_tables::TABLE.get(cp1),

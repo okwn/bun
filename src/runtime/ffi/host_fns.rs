@@ -243,15 +243,6 @@ pub fn generate_symbols(
 // ══════════════════════════════════════════════════════════════════════════
 
 impl Function {
-    /// `Function.compile` (FFI.zig:1769). Prints the C trampoline source,
-    /// compiles + relocates it via TinyCC, and stores the resulting
-    /// `JSFunctionCall` symbol address in `self.step`.
-    ///
-    /// `bun_tcc_sys::tcc` (the method-ful `State` API) is still gated, so
-    /// this body short-circuits to `Step::Failed` after generating the
-    /// source. The full TCC sequence (`State::init` → `add_symbol` →
-    /// `compile_string` → `relocate` → `get_symbol`) is preserved verbatim
-    /// in `ffi_body.rs:1940-2024` and re-enables once `bun_tcc_sys` un-gates.
     pub fn compile(&mut self, _napi_env: Option<&NapiEnv>) -> Result<(), bun_core::Error> {
         let mut source_code: Vec<u8> = Vec::new();
         self.print_source_code(&mut source_code)?;

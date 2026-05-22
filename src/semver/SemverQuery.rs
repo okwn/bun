@@ -14,10 +14,6 @@ pub mod token {
     pub use super::{Token, TokenTag, Wildcard};
 }
 
-/// Linked-list of AND ranges
-/// "^1 ^2"
-/// ----|-----
-/// That is two Query
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Op {
     None,
@@ -120,10 +116,6 @@ impl Query {
     }
 }
 
-/// Linked-list of Queries OR'd together
-/// "^1 || ^2"
-/// ----|-----
-/// That is two List
 #[derive(Default)]
 pub struct List {
     pub head: Query,
@@ -217,11 +209,6 @@ impl List {
             debug_assert!(version.tag.has_pre());
         }
 
-        // `version` has a prerelease tag:
-        // - needs to satisfy each comparator in the query (<comparator> AND <comparator> AND ...) like normal comparison
-        // - if it does, also needs to match major, minor, patch with at least one of the other versions
-        //   with a prerelease
-        // https://github.com/npm/node-semver/blob/ac9b35769ab0ddfefd5a3af4a3ecaf3da2012352/classes/range.js#L505
         let mut pre_matched = false;
         (self
             .head
@@ -287,11 +274,6 @@ pub struct Group {
     pub head: List,
     // BACKREF: alias into self.head.next chain
     pub tail: Option<NonNull<List>>,
-    /// Borrowed view into the caller's source buffer (Zig: `input: string = ""`).
-    /// Stored as a raw fat pointer per PORTING.md §`[]const u8` struct-field
-    /// (parser-owned, never freed) so `Group` carries no lifetime parameter and
-    /// can be embedded in lockfile types (`NpmInfo`). Only dereferenced in
-    /// `json_stringify`; caller must keep the source buffer alive for that call.
     pub input: *const [u8],
 
     pub flags: FlagsBitSet,

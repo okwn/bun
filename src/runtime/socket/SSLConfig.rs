@@ -49,17 +49,6 @@ impl From<JsError> for ReadFromBlobError {
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// Allocation helpers
-//
-// Every owned C-string field on `bun_http::SSLConfig` is freed via
-// `bun_core::free_sensitive` (the default-allocator free after secure-zero).
-// Allocate via `bun_core::dupe_z` (the matching default-allocator alloc) so the
-// pairing is exact. Do NOT leak a `Box<[u8]>` here: under `cfg(bun_asan)` the
-// process-global `#[global_allocator]` is `std::alloc::System`, not mimalloc,
-// so `free_sensitive` would not pair with `Box`-owned memory.
-// ──────────────────────────────────────────────────────────────────────────
-
 /// `ZBox` is global-allocator memory; re-allocate via `dupe_z` so `mi_free` can free it.
 #[inline]
 fn zbox_into_raw(z: &bun_core::ZBox) -> *const c_char {
@@ -389,22 +378,6 @@ fn handle_single_file(
     }
 }
 
-// ──────────────────────────────────────────────────────────────────────────
-// WebSocket C-ABI exports (parseSSLConfig / freeSSLConfig)
-//
-// LAYERING: ground truth is `src/http_jsc/websocket_client/
-// WebSocketUpgradeClient.zig::parseSSLConfig`, but `SSLConfig::from_js`
-// dereferences Blob / JSCArrayBuffer / node_fs values (tier-6) and lives in
-// this crate. `bun_runtime → bun_http_jsc`, so hosting the export here breaks
-// the cycle without an opaque stub. The boxed payload is the canonical
-// `bun_http::ssl_config::SSLConfig` (what `HTTPClient::connect` consumes).
-// C++ (JSWebSocket.cpp) links by symbol name only.
-// ──────────────────────────────────────────────────────────────────────────
-
-/// Parse SSLConfig from a JavaScript TLS options object.
-/// This function is exported for C++ to call from JSWebSocket.cpp.
-/// Returns null if parsing fails (an exception will be set on globalThis).
-/// The returned SSLConfig is heap-allocated and ownership is transferred to the caller.
 #[unsafe(no_mangle)]
 pub extern "C" fn Bun__WebSocket__parseSSLConfig(
     global_this: &JSGlobalObject,

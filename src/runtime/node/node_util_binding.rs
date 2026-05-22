@@ -33,14 +33,6 @@ pub fn enobufs_error_code(_global: &JSGlobalObject, _frame: &CallFrame) -> JsRes
     Ok(JSValue::js_number_from_int32(-UV_E::NOBUFS))
 }
 
-/// `extractedSplitNewLines` for ASCII/Latin1 strings. Panics if passed a non-string.
-/// Returns `undefined` if param is utf8 or utf16 and not fully ascii.
-///
-/// ```js
-/// // util.js
-/// const extractedNewLineRe = new RegExp("(?<=\\n)");
-/// extractedSplitNewLines = value => RegExpPrototypeSymbolSplit(extractedNewLineRe, value);
-/// ```
 #[bun_jsc::host_fn]
 pub fn extracted_split_new_lines_fast_path_strings_only(
     global: &JSGlobalObject,
@@ -79,11 +71,6 @@ fn split(
     // PERF(port): was stack-fallback (std.heap.stackFallback(1024)).
     // Allocator param dropped (non-AST crate uses global mimalloc).
 
-    // `defer { for (lines.items) |out| out.deref(); lines.deinit(alloc); }`
-    // — `Vec<OwnedString>`'s Drop runs `deref()` on every element (covers both
-    // the success path after `to_js_array` and any `?` early-return). Raw
-    // `bun_core::String` is `Copy` and has NO Drop, so a `Vec<BunString>` would
-    // leak; `OwnedString` is the RAII wrapper that mirrors Zig's defer loop.
     let mut lines: Vec<OwnedString> = Vec::new();
 
     // Zig: `const Char = switch (encoding) { .utf8, .latin1 => u8, .utf16 => u16 };`

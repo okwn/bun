@@ -124,10 +124,6 @@ pub struct TextDecoration;
 // TODO(port): Zig source is `css.DefineEnumProperty(@compileError(...))` — unimplemented placeholder.
 pub struct TextDecorationSkipInk;
 
-/// A text emphasis shape for the [text-emphasis-style](https://www.w3.org/TR/2020/WD-css-text-decor-4-20200506/#text-emphasis-style-property) property.
-///
-/// See [TextEmphasisStyle](TextEmphasisStyle).
-// TODO(port): Zig source is `css.DefineEnumProperty(@compileError(...))` — unimplemented placeholder.
 pub struct TextEmphasisStyle;
 
 /// A value for the [text-emphasis](https://www.w3.org/TR/2020/WD-css-text-decor-4-20200506/#text-emphasis-property) shorthand property.
@@ -142,16 +138,8 @@ pub struct TextEmphasisPosition {
     pub horizontal: TextEmphasisPositionHorizontal,
 }
 
-/// A vertical position keyword for the [text-emphasis-position](https://www.w3.org/TR/2020/WD-css-text-decor-4-20200506/#text-emphasis-position-property) property.
-///
-/// See [TextEmphasisPosition](TextEmphasisPosition).
-// TODO(port): Zig source is `css.DefineEnumProperty(@compileError(...))` — unimplemented placeholder.
 pub struct TextEmphasisPositionVertical;
 
-/// A horizontal position keyword for the [text-emphasis-position](https://www.w3.org/TR/2020/WD-css-text-decor-4-20200506/#text-emphasis-position-property) property.
-///
-/// See [TextEmphasisPosition](TextEmphasisPosition).
-// TODO(port): Zig source is `css.DefineEnumProperty(@compileError(...))` — unimplemented placeholder.
 pub struct TextEmphasisPositionHorizontal;
 
 /// A value for the [text-shadow](https://www.w3.org/TR/2020/WD-css-text-decor-4-20200506/#text-shadow-property) property.

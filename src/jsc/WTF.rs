@@ -1,12 +1,5 @@
 use core::ffi::c_int;
 
-// PORT NOTE: Zig wraps everything in `pub const WTF = struct { ... }` as a
-// namespace. In Rust the file itself is the module, so items live at module
-// level. Callers use `bun_jsc::wtf::foo()`.
-//
-// PORT NOTE: `jsc.markBinding(@src())` calls dropped — debug-only binding
-// presence marker with no Rust equivalent.
-
 // TODO(port): move to jsc_sys
 unsafe extern "C" {
     safe fn WTF__numberOfProcessorCores() -> c_int;

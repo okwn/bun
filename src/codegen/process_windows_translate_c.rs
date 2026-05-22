@@ -11,11 +11,6 @@
 use bstr::{BStr, ByteSlice};
 use std::io::Write as _;
 
-// TODO(port): standalone build-time codegen binary — uses std::env / std::fs::{read,write}
-// directly (PORTING.md bans std::fs for runtime code). The Zig original also calls std.fs
-// directly (not bun.sys) since this never links into the runtime. Either keep as-is
-// for build tooling, or swap to bun_sys::File::read_from / bun_sys::File::write_file.
-
 static SYMBOL_REPLACEMENTS: phf::Map<&'static [u8], &'static [u8]> = phf::phf_map! {
     b"NTSTATUS" => b"@import(\"std\").os.windows.NTSTATUS",
     b"HANDLE"   => b"@import(\"std\").os.windows.HANDLE",

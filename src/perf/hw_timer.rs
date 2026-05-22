@@ -104,10 +104,6 @@ struct Calibration {
     mult: u64,
 }
 
-// PORTING.md §Global mutable state: written exactly once inside
-// `CALIBRATE_ONCE.call_once`, which establishes happens-before for readers.
-// `RacyCell` (not `OnceLock`) because `calibrate()` may early-return without
-// writing (freq==0) yet must still mark the Once as done.
 static CALIBRATION: bun_core::RacyCell<Calibration> = bun_core::RacyCell::new(Calibration {
     start_counter: 0,
     start_ns: 0,
@@ -181,10 +177,6 @@ fn read_frequency() -> u64 {
 
         #[cfg(not(any(target_os = "macos", target_os = "freebsd")))]
         {
-            // Linux/Windows: require invariant TSC (CPUID 0x8000_0007 EDX[8]) so
-            // rdtsc is monotonic across cores and P/C-states, then read CPUID 0x15
-            // for an exact frequency (Intel Skylake+ when fully populated). AMD and
-            // older Intel leave 0x15 fields zero — we fall back to vDSO/QPC per call.
             if cpuid(0x8000_0000, 0).eax >= 0x8000_0007
                 && cpuid(0x8000_0007, 0).edx & (1 << 8) != 0
                 && cpuid(0, 0).eax >= 0x15
@@ -248,10 +240,6 @@ fn os_monotonic_ns() -> u64 {
     }
     #[cfg(not(windows))]
     {
-        // PORT NOTE: Zig used `bun.timespec` (struct with .sec/.nsec/.ns()) and called
-        // `std.os.linux.clock_gettime` / `std.c.clock_gettime` directly. The Rust port
-        // uses `libc::timespec` + `libc::clock_gettime` directly (same ABI) and
-        // computes ns inline; `bun_core::Timespec` does not exist at this tier.
         let mut spec = libc::timespec {
             tv_sec: 0,
             tv_nsec: 0,

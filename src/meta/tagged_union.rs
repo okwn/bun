@@ -7,23 +7,6 @@
 //! `deinitImpl` dispatch and the per-arity `deinit` methods collapse to nothing —
 //! the compiler-generated `Drop` glue is exactly `deinitImpl`.
 
-// PORT NOTE: `deinitImpl` is intentionally not ported as a function. Its body
-// (`switch (activeTag) { inline else => |tag| bun.memory.deinit(&@field(...)) }`)
-// is precisely what Rust's auto-generated enum Drop glue does: drop the active
-// variant in place. There is no behavior to translate — every `TaggedUnion`
-// produced below gets correct per-variant destruction for free.
-
-/// Creates a tagged union (Rust `enum`) with variants corresponding to the given
-/// field types. Variants are named `_0`, `_1`, `_2`, etc.
-///
-/// Zig: `TaggedUnion(&.{A, B, C})` → Rust: `tagged_union!(A, B, C)`
-///
-/// The Zig version stamped out a `pub fn deinit` on each arity that dispatched to
-/// the active field's `deinit`. Rust enums drop their active variant automatically,
-/// so no explicit `Drop` impl is emitted here.
-// PORT NOTE: Zig's `TaggedUnion` returns an *anonymous* type usable inline as an
-// expression. Rust macros can only mint named item-position types, so callers must
-// supply a name: `tagged_union!(pub MyUnion; A, B, C);`.
 #[macro_export]
 macro_rules! tagged_union {
     // 0 types — compile error, matching `@compileError("cannot create an empty tagged union")`

@@ -53,11 +53,6 @@ pub enum NapiStatus {
     would_deadlock = 21,
 }
 
-// ─── opaque type surface ─────────────────────────────────────────────────────
-// TODO(blocked): bun_jsc::EventLoop (method surface)
-// TODO(blocked): bun_jsc::c_api::ExceptionRef
-// TODO(blocked): bun_collections::LinearFifo
-// TODO(blocked): bun_threading::Condvar
 pub struct ThreadsafeFunction(());
 pub struct AsyncWork(());
 pub struct Ref(());

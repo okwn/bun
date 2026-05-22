@@ -9,13 +9,6 @@ use bun_threading::Guarded;
 use crate::webcore::Blob;
 use crate::webcore::BlobExt as _;
 
-// PORT NOTE: reshaped for borrowck — Zig had separate `lock: bun.Mutex` and
-// `map: AutoHashMap` fields with manual lock()/unlock() around every access.
-// In Rust the map is wrapped in a `Guarded` (mutex + value).
-//
-// Key is `[u8; 16]` (the UUID bytes) rather than `UUID` directly because
-// upstream `bun_jsc::UUID` does not yet derive `Hash + Eq`; using the raw
-// byte array avoids touching the upstream crate.
 pub struct ObjectURLRegistry {
     map: Guarded<HashMap<[u8; 16], Box<Entry>>>,
 }
@@ -49,12 +42,6 @@ impl Entry {
 
 impl Drop for Entry {
     fn drop(&mut self) {
-        // Zig `Entry.deinit`: `this.blob.deinit(); bun.destroy(this);`.
-        // `Blob` has no `Drop` impl (it's a `.classes.ts` ctx payload with an
-        // explicit `deinit()` — see webcore_types.rs PORT NOTE), so we must
-        // call it here to release the +1 `name` ref and any heap-allocated
-        // `content_type` taken by `dupe_with_content_type`. The duped blob's
-        // `ref_count == 0`, so `deinit`'s heap-free branch is skipped.
         self.blob.deinit();
         // `bun.destroy(this)` ↔ `Box<Entry>` drop.
     }

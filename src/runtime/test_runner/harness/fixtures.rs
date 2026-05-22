@@ -12,11 +12,6 @@ pub static FIXTURES: phf::Map<&'static [u8], &'static [u8]> = phf_map! {
     b"simple-component.tsx" => include_bytes!("./fixtures/simple-component.tsx"),
 };
 
-/// (route file path, file body)
-///
-/// Zig models these as anonymous-struct literals where each *field name* is the
-/// path (`.@"pages/index.js" = "..."`). Callers iterate fields via `@typeInfo`
-/// reflection, so the faithful Rust shape is a static `(key, value)` slice.
 pub type RouteList = &'static [(&'static [u8], &'static [u8])];
 
 pub static SAMPLE_ROUTE_LIST: RouteList = &[

@@ -18,11 +18,6 @@ pub struct PendingConnect {
     pub port: u16,
     // TODO(port): lifetime — compared by pointer identity only, never derefed/freed here
     pub ssl_config: Option<NonNull<SSLConfig>>,
-    /// Whether the client that initiated this in-flight TLS connect requested
-    /// `rejectUnauthorized`. The eventual `ClientSession` records this as
-    /// `established_with_reject_unauthorized`; mirroring it here lets the
-    /// coalescing path apply the same strictness guard *before* the session
-    /// exists, so a strict caller never waits on a connect started by a lax one.
     pub reject_unauthorized: bool,
     // BACKREF: waiters are borrowed HTTP clients owned elsewhere; lifetime-erased.
     pub waiters: Vec<NonNull<HTTPClient<'static>>>,
@@ -34,14 +29,6 @@ impl PendingConnect {
         Box::new(init)
     }
 
-    /// Upgrade a `waiters` back-ref to `&mut HTTPClient`.
-    ///
-    /// INVARIANT: every entry in `waiters` is a back-ref to a live
-    /// `HTTPClient` embedded in its `AsyncHTTP`, registered via
-    /// `HTTPContext::connect` and removed before that client's terminal
-    /// callback. HTTP-thread-only, so the returned `&mut` is the sole live
-    /// borrow. Routes through the crate-wide
-    /// [`HTTPClient::from_erased_backref`] accessor.
     #[inline]
     pub fn waiter_mut<'a>(p: NonNull<HTTPClient<'static>>) -> &'a mut HTTPClient<'static> {
         HTTPClient::from_erased_backref(p)
@@ -58,11 +45,6 @@ impl PendingConnect {
             && strings::eql_long(&self.hostname, hostname, true)
     }
 
-    /// Remove `this` from `ctx.pending_h2_connects` and hand the owning
-    /// `Box<Self>` back to the caller. Associated fn (not `&mut self`) because
-    /// the list owns `Box<Self>` — `swap_remove` would otherwise drop the very
-    /// allocation `&mut self` borrows from (UAF). Caller holds the returned
-    /// Box until scope exit (Zig: `defer pc.deinit()`).
     pub fn unregister_from(this: *const Self, ctx: &mut NewHTTPContext<true>) -> Option<Box<Self>> {
         let list = &mut ctx.pending_h2_connects;
         // PORT NOTE: reshaped for borrowck (was `for + swapRemove + return`)
@@ -71,10 +53,6 @@ impl PendingConnect {
             .map(|i| list.swap_remove(i))
     }
 
-    // Zig `deinit` freed `hostname`, deinited `waiters`, and `bun.destroy(this)`.
-    // In Rust all three are handled by dropping `Box<PendingConnect>` — `Box<[u8]>`
-    // and `Vec<_>` fields free themselves, and the Box frees the allocation.
-    // No explicit `Drop` impl needed.
 }
 
 // ported from: src/http/h2_client/PendingConnect.zig

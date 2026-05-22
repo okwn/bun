@@ -72,13 +72,6 @@ pub struct Handlers {
 
 use crate::jsc_hooks::timer_all_mut as timer_all;
 
-/// Lazily create-and-cache a JS host-function callback in `slot`.
-///
-/// All four `get_js_handlers` slots follow the identical pattern from
-/// `UpgradedDuplex.zig:getJSHandlers` (lines 268/287/306/324):
-/// `NewFunctionWithData(global, null, 0, fn, self)` → `ensureStillAlive` →
-/// redundant `setFunctionData(self)` → `Strong.Optional.create`. The
-/// redundant `set_function_data` is preserved verbatim from the Zig source.
 #[inline]
 fn lazy_js_handler(
     slot: &mut StrongOptional,
@@ -191,11 +184,6 @@ impl UpgradedDuplex {
         let this = unsafe { &mut *this };
         this.reset_timeout();
 
-        // Possible scenarios:
-        // Scenario 1: will not write if vm is shutting down (we cannot do anything about it)
-        // Scenario 2: will not write if a exception is thrown (will be handled by onError)
-        // Scenario 3: will be queued in memory and will be flushed later
-        // Scenario 4: no write/end function exists (will be handled by onError)
         this.call_write_or_end(Some(encoded_data), true);
     }
 
@@ -324,10 +312,6 @@ impl UpgradedDuplex {
         Ok(())
     }
 
-    /// Adopts `ctx` (one ref) — freed on both success (via `wrapper.deinit`) and
-    /// error. Mirrors `start_tls` but skips the
-    /// `SSLConfig.asUSockets() → us_ssl_ctx_from_options()` round-trip so a
-    /// memoised `SecureContext` can be reused on the duplex/named-pipe path.
     pub fn start_tls_with_ctx(
         &mut self,
         ctx: *mut bun_boringssl_sys::SSL_CTX,
@@ -601,20 +585,6 @@ fn on_close_js(_global: &JSGlobalObject, frame: &CallFrame) -> JsResult<JSValue>
 
     Ok(JSValue::UNDEFINED)
 }
-
-// ──────────────────────────────────────────────────────────────────────────
-// `bun_uws::UpgradedDuplex` link-time-dispatch shims (cycle break).
-//
-// `src/uws_sys/lib.rs` declares `UpgradedDuplex` as an opaque handle and binds
-// these symbols via `extern "C"` so the low-tier socket dispatch can call into
-// the runtime without an upward crate dep. Signatures MUST match the
-// `unsafe extern "C"` block there.
-//
-// All but `ssl` are emitted by `#[uws_callback(export = "...")]` on the
-// inherent methods above; `ssl` keeps a hand-written shim because the safe
-// method returns `Option<*mut SSL>` while the C ABI flattens to a nullable
-// raw pointer.
-// ──────────────────────────────────────────────────────────────────────────
 
 #[unsafe(no_mangle)]
 pub extern "C" fn UpgradedDuplex__ssl(this: *const c_void) -> *mut bun_boringssl_sys::SSL {

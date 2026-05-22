@@ -13,10 +13,6 @@ const TAG_RAD: u8 = 2;
 const TAG_GRAD: u8 = 4;
 const TAG_TURN: u8 = 8;
 
-/// A CSS [`<angle>`](https://www.w3.org/TR/css-values-4/#angles) value.
-///
-/// Angles may be explicit or computed by `calc()`, but are always stored and serialized
-/// as their computed value.
 #[repr(u8)]
 #[derive(Clone, Copy, PartialEq, crate::generics::CssHash, crate::generics::DeepClone)]
 pub enum Angle {
@@ -231,11 +227,6 @@ impl Angle {
     }
 
     pub fn op_to<T, C>(self, other: Angle, ctx: C, op_fn: fn(C, f32, f32) -> T) -> T {
-        // PERF: not sure if this is faster
-        // TODO(port): upstream bug — Zig `opTo` computes `other_tag` from `this.*`, so mixed-variant
-        // inputs read `other`'s raw f32 payload via the wrong arm. This port INTENTIONALLY DIVERGES:
-        // we require both operands to share a variant, otherwise fall through to to_degrees().
-        // Revisit and fix upstream.
         match (self, other) {
             (Angle::Deg(a), Angle::Deg(b)) => op_fn(ctx, a, b),
             (Angle::Rad(a), Angle::Rad(b)) => op_fn(ctx, a, b),

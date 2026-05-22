@@ -45,10 +45,6 @@ impl From<codecs::Error> for BackendError {
 bun_core::named_error_set!(BackendError);
 
 impl BackendError {
-    /// Reshape Zig's `(codecs.Error || error{BackendUnavailable})!T` into the
-    /// Rust caller's `Result<Option<T>, codecs::Error>` convention used by
-    /// `codecs.rs` (`Ok(None)` = BackendUnavailable → fall through to the
-    /// pure-Rust codec path).
     #[inline]
     pub fn split<T>(r: Result<T, Self>) -> Result<Option<T>, codecs::Error> {
         match r {
@@ -198,11 +194,6 @@ pub fn encode(
     Ok(out)
 }
 
-// ── vImage geometry ────────────────────────────────────────────────────────
-// AMX-backed kernels for the common pipeline ops. Signatures mirror the
-// Highway path in `codecs.rs` so the dispatch site is `system_backend.x()
-// .or_else(|_| fallback.x())`.
-
 // TODO(port): move to runtime_sys
 unsafe extern "C" {
     fn bun_coregraphics_scale(
@@ -274,11 +265,6 @@ pub fn flip(src: &[u8], w: u32, h: u32, horizontal: bool) -> Result<Vec<u8>, Bac
     }
     Ok(out)
 }
-
-// ── NSPasteboard ───────────────────────────────────────────────────────────
-// JS-thread only (NSPasteboard is documented main-thread-safe to *read*, and
-// the static `Bun.Image.fromClipboard()` accessor calls this synchronously
-// before constructing the Image — the heavy decode still goes to WorkPool).
 
 // TODO(port): move to runtime_sys
 unsafe extern "C" {

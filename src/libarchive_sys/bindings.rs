@@ -33,15 +33,6 @@ impl FileKindSet {
     }
 }
 
-// ───────────────────────────────────────────────────────────────────────────
-// File-sink vtable (CYCLEBREAK §Dispatch — cold path)
-//
-// `read_data_into_fd` previously called bun_sys::{File, set_file_offset,
-// ftruncate} directly (T1). The low tier now defines an erased sink; the
-// higher tier (bun_sys / runtime) provides the static vtable instance.
-// PERF(port): was inline switch on bun_sys::Result.
-// ───────────────────────────────────────────────────────────────────────────
-
 /// Erased file write target for [`Archive::read_data_into_fd`].
 pub struct ArchiveFileSink {
     pub owner: *mut (),
@@ -337,12 +328,6 @@ const ARCHIVE_EXTRACT_SAFE_WRITES: c_int = 0x40000;
 // Archive (opaque FFI handle)
 // ───────────────────────────────────────────────────────────────────────────
 
-// Opaque libarchive `struct archive` handle. Always used behind `*mut Archive`.
-//
-// `_p` is wrapped in `UnsafeCell` so the type is `!Freeze`: libarchive mutates
-// the C-side state through every call, and the Zig spec passes `*Archive`
-// (mutable) everywhere. Without `UnsafeCell`, deriving a `*mut` from `&Archive`
-// and letting C write through it is UB.
 bun_opaque::opaque_ffi! { pub struct Archive; }
 
 #[repr(i32)]
@@ -356,11 +341,6 @@ pub enum ArchiveResult {
     Fatal = ARCHIVE_FATAL,
 }
 
-// `Archive`/`ArchiveEntry` are `#[repr(C)]` opaque ZSTs with `UnsafeCell<[u8; 0]>`,
-// so `&Archive` is ABI-identical to a non-null `*mut Archive` and carries no
-// `readonly`/`noalias` attrs. Decls whose only pointer params are these handles
-// (plus value-typed scalars) are marked `safe fn`; decls taking nullable raw
-// pointers, (ptr, len) pairs, or out-params stay `unsafe`.
 unsafe extern "C" {
     safe fn archive_version_number() -> c_int;
     safe fn archive_version_string() -> *const c_char;
@@ -805,15 +785,6 @@ impl Archive {
         ArchiveResult::Ok
     }
 
-    /// Reads data from the archive and writes it to the given file sink.
-    /// This is a port of libarchive's archive_read_data_into_fd with optimizations:
-    /// - Uses pwrite when possible to avoid needing lseek for sparse file handling
-    /// - Falls back to lseek + write if pwrite is not available
-    /// - Falls back to writing zeros if lseek is not available
-    /// - Truncates the file to the final size to handle trailing sparse holes
-    ///
-    /// The caller supplies an [`ArchiveFileSink`] vtable (typically backed by a
-    /// `bun_sys::File`); this crate stays tier-0 and never names `bun_sys`.
     pub fn read_data_into_fd(
         &self,
         sink: &ArchiveFileSink,
@@ -970,11 +941,6 @@ pub struct Block {
 // Archive::Entry (opaque FFI handle)
 // ───────────────────────────────────────────────────────────────────────────
 
-// Opaque libarchive `struct archive_entry` handle.
-//
-// `_p` is wrapped in `UnsafeCell` so the type is `!Freeze`: libarchive mutates
-// entry state through setters and `archive_read_next_header2`. The Zig spec
-// passes `*Entry` (mutable) — without `UnsafeCell`, `&ArchiveEntry → *mut` is UB.
 bun_opaque::opaque_ffi! { pub struct ArchiveEntry; }
 
 unsafe extern "C" {

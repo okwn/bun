@@ -137,11 +137,6 @@ pub struct CursorImage {
     pub hotspot: Option<[CSSNumber; 2]>,
 }
 
-/// A pre-defined [cursor](https://www.w3.org/TR/2021/WD-css-ui-4-20210316/#cursor) value,
-/// used in the `cursor` property.
-///
-/// See [Cursor](Cursor).
-// TODO(port): Zig source is `css.DefineEnumProperty(@compileError(css.todo_stuff.depth))` — intentionally unimplemented upstream.
 pub struct CursorKeyword;
 
 /// A value for the [caret-color](https://www.w3.org/TR/2021/WD-css-ui-4-20210316/#caret-color) property.

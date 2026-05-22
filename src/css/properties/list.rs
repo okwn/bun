@@ -29,10 +29,6 @@ pub struct Symbols<'bump> {
     pub symbols: bun_alloc::ArenaVec<'bump, Symbol>,
 }
 
-/// A single [symbol](https://www.w3.org/TR/css-counter-styles-3/#funcdef-symbols) as used in the
-/// `symbols()` function.
-///
-/// See [CounterStyle](CounterStyle).
 pub enum Symbol {
     /// A string.
     String(CssString),
@@ -44,11 +40,6 @@ pub enum Symbol {
 // TODO(port): Zig source is `@compileError(css.todo_stuff.depth)` — unimplemented upstream
 pub enum PredefinedCounterStyle {}
 
-/// A [`<symbols-type>`](https://www.w3.org/TR/css-counter-styles-3/#typedef-symbols-type) value,
-/// as used in the `symbols()` function.
-///
-/// See [CounterStyle](CounterStyle).
-// TODO(port): Zig source is `css.DefineEnumProperty(@compileError(css.todo_stuff.depth))` — unimplemented upstream
 pub enum SymbolsType {}
 
 /// A value for the [list-style-position](https://www.w3.org/TR/2020/WD-css-lists-3-20201117/#list-style-position-property) property.

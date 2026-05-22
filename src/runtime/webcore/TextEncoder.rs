@@ -19,14 +19,6 @@ pub unsafe extern "C" fn TextEncoder__encode8(
     ptr: *const u8,
     len: usize,
 ) -> JSValue {
-    // as much as possible, rely on jsc to own the memory
-    // their code is more battle-tested than bun's code
-    // so we do a stack allocation here
-    // and then copy into jsc memory
-    // unless it's huge
-    // JSC will GC Uint8Array that occupy less than 512 bytes
-    // so it's extra good for that case
-    // this also means there won't be reallocations for small strings
     let mut buf = [0u8; 2048];
     // SAFETY: caller guarantees ptr[0..len] is valid Latin-1 data
     let slice = unsafe { core::slice::from_raw_parts(ptr, len) };
@@ -66,14 +58,6 @@ pub unsafe extern "C" fn TextEncoder__encode16(
     ptr: *const u16,
     len: usize,
 ) -> JSValue {
-    // as much as possible, rely on jsc to own the memory
-    // their code is more battle-tested than bun's code
-    // so we do a stack allocation here
-    // and then copy into jsc memory
-    // unless it's huge
-    // JSC will GC Uint8Array that occupy less than 512 bytes
-    // so it's extra good for that case
-    // this also means there won't be reallocations for small strings
     let mut buf = [0u8; 2048];
 
     // SAFETY: caller guarantees ptr[0..len] is valid UTF-16 data
@@ -115,14 +99,6 @@ pub unsafe extern "C" fn TextEncoder__encode16(
 /// `ptr` must be valid for reading `len` UTF-16 code units.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn c(global_this: &JSGlobalObject, ptr: *const u16, len: usize) -> JSValue {
-    // as much as possible, rely on jsc to own the memory
-    // their code is more battle-tested than bun's code
-    // so we do a stack allocation here
-    // and then copy into jsc memory
-    // unless it's huge
-    // JSC will GC Uint8Array that occupy less than 512 bytes
-    // so it's extra good for that case
-    // this also means there won't be reallocations for small strings
     let mut buf = [0u8; 2048];
 
     // SAFETY: caller guarantees ptr[0..len] is valid UTF-16 data

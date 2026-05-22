@@ -1,11 +1,5 @@
 use bun_sys::{O, posix};
 
-// PORT NOTE: the Zig `get(comptime name)` helper used `@hasDecl(bun.O, name)` +
-// `@field(bun.O, name)` to look up an open-flag by string at comptime, with a
-// `@compileError` fallback. Rust has no struct-field reflection; since every
-// call site names a constant that exists on `bun_sys::O`, we reference those
-// constants directly below and drop the helper.
-
 // File Access Constants
 /// Constant for fs.access(). File is visible to the calling process.
 pub const F_OK: i32 = posix::F_OK;
@@ -75,10 +69,6 @@ pub const O_CREAT: i32 = O::CREAT;
 /// Constant for fs.open(). Flag indicating that opening a file should fail if the O_CREAT flag is set and the file already exists.
 pub const O_EXCL: i32 = O::EXCL;
 
-///
-/// Constant for fs.open(). Flag indicating that if path identifies a terminal device,
-/// opening the path shall not cause that terminal to become the controlling terminal for the process
-/// (if the process does not already have one).
 pub const O_NOCTTY: i32 = O::NOCTTY;
 /// Constant for fs.open(). Flag indicating that if the file exists and is a regular file, and the file is opened successfully for write access, its length shall be truncated to zero.
 pub const O_TRUNC: i32 = O::TRUNC;
@@ -87,11 +77,6 @@ pub const O_APPEND: i32 = O::APPEND;
 /// Constant for fs.open(). Flag indicating that the open should fail if the path is not a directory.
 pub const O_DIRECTORY: i32 = O::DIRECTORY;
 
-///
-/// constant for fs.open().
-/// Flag indicating reading accesses to the file system will no longer result in
-/// an update to the atime information associated with the file.
-/// This flag is available on Linux operating systems only.
 pub const O_NOATIME: i32 = O::NOATIME;
 /// Constant for fs.open(). Flag indicating that the open should fail if the path is a symbolic link.
 pub const O_NOFOLLOW: i32 = O::NOFOLLOW;
@@ -153,10 +138,6 @@ pub const S_IWOTH: i32 = posix::S::IWOTH as i32;
 /// Constant for fs.Stats mode property for determining access permissions for a file. File mode indicating executable by others.
 pub const S_IXOTH: i32 = posix::S::IXOTH as i32;
 
-///
-/// When set, a memory file mapping is used to access the file. This flag
-/// is available on Windows operating systems only. On other operating systems,
-/// this flag is ignored.
 pub const UV_FS_O_FILEMAP: i32 = 536870912;
 
 // TODO(port): verify constant types — Zig left these as comptime_int / inherited
