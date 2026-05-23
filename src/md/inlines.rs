@@ -97,10 +97,6 @@ impl Parser<'_> {
             return Err(parser::Error::StackOverflow);
         }
 
-        // Bracket-pair map for this slice: link processing looks up the ']'
-        // matching a '[' here instead of rescanning the rest of the slice for
-        // every opener. The backing storage is recycled via self.bracket_pairs
-        // (recursive calls for link labels simply build their own small map).
         let bracket_storage = core::mem::take(&mut self.bracket_pairs);
         let brackets = self.compute_bracket_matches(content, bracket_storage);
 
