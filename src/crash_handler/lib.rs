@@ -980,13 +980,6 @@ mod draft {
                     let trace: &StackTrace = 'blk: {
                         let idx: usize = match seed {
                             TraceSeed::ErrorReturn(ert) => break 'blk ert,
-                            // For an actual fault the signal/exception handler hands
-                            // us the saved register context. Seeding the walk from
-                            // the fault `pc`/`fp` is the only reliable way to recover
-                            // the faulting stack: the POSIX handler runs on an
-                            // `SA_ONSTACK` altstack, so its own frame chain is
-                            // disjoint from the faulting thread's, and release builds
-                            // strip the unwind tables a CFI-based capture would need.
                             TraceSeed::Fault { pc, fp } => {
                                 bun_core::debug::capture_from_context(pc, fp, &mut addr_buf)
                             }
@@ -1475,10 +1468,6 @@ mod draft {
         },
     );
 
-    /// Extract `(pc, fp)` from the `ucontext_t` the kernel hands the signal
-    /// handler. Seeds the frame-pointer walk from the faulting frame. Returns
-    /// `None` on arch/OS combos we don't have register offsets for (the caller
-    /// then falls back to a current-stack capture).
     #[cfg(unix)]
     fn fault_context_from_ucontext(ctx: *mut c_void) -> Option<(usize, usize)> {
         debug_assert!(!ctx.is_null());
@@ -1675,10 +1664,6 @@ mod draft {
         }
         PANIC_STAGE.with(|s| s.set(1));
 
-        // Just the panic message — no `(file:line:col)` suffix. The call site is
-        // captured in the backtrace and symbolized there (matching Zig, which
-        // never appended a location to the message). With `-Zlocation-detail=none`
-        // in release the location would be `<redacted>:0:0` anyway.
         let mut msg_buf = BoundedArray::<u8, 1024>::default();
         {
             let payload = info.payload();

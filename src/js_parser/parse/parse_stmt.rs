@@ -1738,11 +1738,6 @@ impl<'a, const TYPESCRIPT: bool, const SCAN_ONLY: bool> P<'a, TYPESCRIPT, SCAN_O
                 if let Some(decs) = &opts.ts_decorators {
                     p.discard_scopes_up_to(decs.scope_index);
                 } else {
-                    // The statement is dropped below (or reduced to just its bindings
-                    // for "export declare var" inside a namespace), so discard any
-                    // scopes it recorded or the visit pass will hit a scope order
-                    // mismatch (e.g. "declare foo: bar" parses a labeled statement
-                    // that records a Label scope).
                     p.discard_scopes_up_to(scope_index);
                 }
 
