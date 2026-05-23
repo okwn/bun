@@ -241,10 +241,6 @@ impl<'a> ImportScanner<'a> {
                             .chain(star_binding)
                             .chain(item_bindings)
                         {
-                            // Only report source-level re-declarations: `ReplaceWithNew`
-                            // links the import to the symbol that took over the scope
-                            // member, while generated symbols (e.g. JSX runtime imports)
-                            // link the other way.
                             let symbol = &p.symbols[name_ref.inner_index() as usize];
                             let mut link = symbol.link.get();
                             if !link.is_valid() {
