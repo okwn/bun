@@ -834,6 +834,22 @@ impl<'a> Lexer<'a> {
                     }
                     self.identifier = self.raw();
                     self.token = match self.identifier.len() {
+                        3 => {
+                            // TOML 1.0.0 float values: `inf` and `nan`. The
+                            // signed forms `+inf` / `-inf` / `+nan` / `-nan`
+                            // are handled by the existing `t_plus` / `t_minus`
+                            // arms in the parser, which consume a following
+                            // `t_numeric_literal`.
+                            if strings::eql_comptime_ignore_len(self.identifier, b"inf") {
+                                self.number = f64::INFINITY;
+                                T::t_numeric_literal
+                            } else if strings::eql_comptime_ignore_len(self.identifier, b"nan") {
+                                self.number = f64::NAN;
+                                T::t_numeric_literal
+                            } else {
+                                T::t_identifier
+                            }
+                        }
                         4 => {
                             if strings::eql_comptime_ignore_len(self.identifier, b"true") {
                                 T::t_true
@@ -1317,9 +1333,11 @@ pub fn is_identifier_part(code_point: CodePoint) -> bool {
 }
 
 pub fn is_latin1_identifier<B: Copy + Into<u32>>(name: &[B]) -> bool {
-    // TOML 1.0.0 bare keys: [A-Za-z0-9_-]+. Per the spec leading digits are
-    // allowed but leading `-` is not (it's handled separately as the minus
-    // token for signed numbers).
+    // TOML 1.0.0 bare keys: [A-Za-z0-9_-]+ (the spec's ABNF allows `-` at any
+    // position, including the lead). Leading `-` is excluded here because the
+    // lexer tokenizes it as `t_minus` for signed numbers before the identifier
+    // scanner ever runs, so a `t_identifier` can never start with `-` in
+    // practice.
     if name.is_empty() {
         return false;
     }
