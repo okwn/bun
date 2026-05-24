@@ -1,0 +1,52 @@
+name: Dependency Check
+
+on:
+  pull_request:
+    paths:
+      - "package.json"
+      - "bun.lock"
+      - "bun.lockb"
+      - "tsconfig.json"
+      - "jsconfig.json"
+      - ".npmrc"
+      - ".nvmrc"
+      - ".node-version"
+      - "*.config.{js,ts,mjs,cjs}"
+  workflow_dispatch:
+
+env:
+  BUN_VERSION: "1.2.10"
+
+jobs:
+  dep-check:
+    name: Verify dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Bun
+        uses: ./.github/actions/setup-bun
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Check for lockfile
+        run: |
+          if [ -f "bun.lockb" ]; then
+            echo "::notice ::bun.lockb detected - binary lockfile"
+          elif [ -f "bun.lock" ]; then
+            echo "::notice ::bun.lock detected - text lockfile"
+          else
+            echo "::error ::No lockfile found. Run 'bun install' to generate bun.lock"
+            exit 1
+          fi
+
+      - name: Verify lockfile matches package.json
+        run: bun install --frozen-lockfile
+
+      - name: Check for outdated dependencies
+        run: bun outdated || true
+
+      - name: Verify no extraneous packages
+        run: bun install --dry-run || true
