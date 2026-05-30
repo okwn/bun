@@ -1,9 +1,5 @@
-# Project
-/.github/CODEOWNERS @Jarred-Sumner
+# Code Owners
+# This file defines who is responsible for code in this repository.
+# Maintainers will be automatically requested for review on PRs.
 
-# Tests
-/test/expectations.txt @Jarred-Sumner
-
-# Types
-*.d.ts @alii
-/packages/bun-types/ @alii
+* @default-reviewer
