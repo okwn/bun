@@ -372,3 +372,6 @@ The built version of Bun may not work on other systems if compiled this way.
 - Disable logging: `BUN_DEBUG_QUIET_LOGS=1 bun-debug ...` (to disable all debug logging)
 - Enable logging for a specific scope: `BUN_DEBUG_EventLoop=1 bun-debug ...` (to enable `scoped_log!(EventLoop, ...)` output)
 - Bun transpiles every file it runs, to see the actual executed source in a debug build find it in `/tmp/bun-debug-src/...path/to/file`, for example the transpiled version of `/home/bun/index.ts` would be in `/tmp/bun-debug-src/home/bun/index.ts`
+
+## Contributors
+- Documentation improvements (2026)
