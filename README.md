@@ -444,3 +444,9 @@ Refer to the [Project > Contributing](https://bun.com/docs/project/contributing)
 ## License
 
 Refer to the [Project > License](https://bun.com/docs/project/license) page for information about Bun's licensing.
+
+## Performance Best Practices
+
+- Use  for production builds
+- Enable Fastly CDN for asset delivery
+- Use Bun's built-in hot reloader in development
